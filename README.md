@@ -1,10 +1,10 @@
 # Blue Brain Project Nix base Docker image
 
-This repositories provides:
-* the docker recipe to build a minimalist Fedora Docker image with NIX installed,
+This repository provides:
+* a Docker recipe to build a minimalist NIX image based on Fedora,
   located in the [base](./base) directory.
-* the Docker recipe to build Docker images containing Blue Brain HPC software stack,
-  located in the [package](./package) directory.
+* a Docker recipe to build images containing Blue Brain HPC software stack base on
+  the previous image, located in the [package](./package) directory.
 
 ## Installation prerequisites
 
@@ -19,11 +19,11 @@ Use the `./bootstrap` script to setup proper settings. Type `./bootstrap --help`
 
 ### Makefile targets
 
-A Makefile allows you to build desired Docker images:
+A Makefile allows you to build desired Docker images. Available targets:
 
 * `base`: Build `bbp/nix-base` base Docker image
-* `pkg.<expr>`: Build the dedicated Docker image with NIX expression `<expr>` shipped inside the image. for instance: `make pkg.functionalizer`
-* `push.<expr>`: Push to Docker Hub the Docker image associated to the NIX expression.
+* `pkg.<expr>`: Build the dedicated Docker image with NIX expression `<expr>` shipped inside the image. for instance: `pkg.functionalizer`
+* `push.<expr>`: Push to Docker Hub the Docker image associated with the NIX expression.
 
 # LICENSE
 
