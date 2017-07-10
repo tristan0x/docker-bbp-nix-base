@@ -1,0 +1,2 @@
+. /root/.nix-profile/etc/profile.d/nix.sh
+export NIX_PATH="ssh-config-file=/root/.ssh/config:$NIX_PATH"

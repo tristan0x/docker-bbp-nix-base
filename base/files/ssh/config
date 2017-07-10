@@ -1,0 +1,5 @@
+Host bbpcode.epfl.ch
+  IdentityFile          ~/.ssh/id_rsa
+  StrictHostKeyChecking no
+  IdentitiesOnly        yes
+  User                  @BBPCODE_SSH_USER@

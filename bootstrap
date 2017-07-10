@@ -1,0 +1,103 @@
+#!/bin/sh -e
+
+SED=${SED:-sed}
+DOCKER=${DOCKER:-docker}
+
+log() {
+    echo '#' $@
+}
+
+cmd() {
+    echo '$' $@
+    $@
+}
+
+help_message() {
+    local bold=$(tput bold) normal=$(tput sgr0)
+    cat <<EOF
+${bold}NAME${normal}
+        bootstrap - install requirements
+${bold}SYNOPSYS${normal}
+        ${bold}bootstrap${normal} [OPTIONS]
+${bold}DESCRIPTION${normal}
+        ${bold}-u --bbpcode-ssh-user${normal}
+           Specifies the SSH user to access private repositories
+           hosted at bbpcode.epfl.ch
+           Default is "$BBPCODE_SSH_USER"
+
+        ${bold}-s --ssh-key${normal}
+            Specifies the SSH key to access both 
+            bbpcode.epfl.ch and github.com private Git repositories
+            Default is ~/.ssh/id_rsa
+
+        ${bold}-o --docker-organization${normal}
+            Specifies Docker organization where build images are sent
+            Default is "DOCKER_ORG"
+
+        ${bold}--nix-channel-url${normal}
+           Specifies link to NIX BBP channel.
+           Default is "$NIX_CHANNEL_URL"
+
+        ${bold}-h --help${normal}
+                Display this message and exit.
+${bold}ENVIRONMENT${normal}
+        You can specify path to executables used by this script
+        via environment variables if not in ${bold}PATH${normal}
+
+        ${bold}SED${normal}
+        ${bold}DOCKER${normal}
+EOF
+}
+
+parse_cli() {
+    while [ "x$1" != x ] ; do
+        case "$1" in
+            -u|--user)
+                shift
+                BBPCODE_SSH_USER="$1"
+                ;;
+            -o|--docker-org)
+                shift
+                DOCKER_ORG="$1"
+                ;;
+            --nix-channel-url)
+                shift
+                NIX_CHANNEL_URL="$1"
+                ;;
+            -s|--bbpcode-ssh-user)
+                shift
+                SSH_KEY="$1"
+                ;;
+            -h|--help)
+                help_message
+                exit 0
+                ;;
+        esac
+        shift
+    done
+}
+
+check_docker() {
+    docker_experimental=`$DOCKER version --format '{{.Server.Experimental}}'`
+    if [ x$docker_experimental != xtrue ] ;then
+        echo "Docker experimental mode does not seem to be enabled. Abort" >&2
+        exit 1
+    fi
+}
+
+
+SSH_KEY=~/.ssh/id_rsa
+NIX_CHANNEL_URL=http://`curl -4 icanhazip.com 2>/dev/null`/channels/bbp-nixpkgs-unstable
+DOCKER_ORG=bbp
+BBPCODE_SSH_USER=$USER
+
+parse_cli $@
+check_docker
+
+install -m 400 "$SSH_KEY" base/files/ssh/id_rsa
+cat <<EOF > env.mk
+SSH_KEY = "$SSH_KEY"
+NIX_CHANNEL_URL = "$NIX_CHANNEL_URL"
+DOCKER_ORG = "$DOCKER_ORG"
+BBPCODE_SSH_USER = "$USER"
+EOF
