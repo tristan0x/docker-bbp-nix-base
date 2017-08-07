@@ -22,8 +22,18 @@ Use the `./bootstrap` script to setup proper settings. Type `./bootstrap --help`
 A Makefile allows you to build desired Docker images. Available targets:
 
 * `base`: Build `bbp/nix-base` base Docker image
-* `pkg.<expr>`: Build the dedicated Docker image with NIX expression `<expr>` shipped inside the image. for instance: `pkg.functionalizer`
+* `build.<expr>`: Build the dedicated Docker image with NIX expression `<expr>` shipped inside the image. for instance: `pkg.functionalizer`
 * `push.<expr>`: Push to Docker Hub the Docker image associated with the NIX expression.
+
+### Makefile environment variables
+
+You can specify the following environment variables to customize executed commands:
+
+* `DOCKER`, path to *docker_ executable. default is "docker"
+* `DBFLAGS`, used to add arguments to *docker build* commands.
+  For instance: `DBFLAGS=--no-cache make base`
+* `DTAG`, used to customize the tag version of Docker images built
+  by the `pkg.<expr>` make targets.
 
 # LICENSE
 

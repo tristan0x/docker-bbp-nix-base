@@ -35,8 +35,12 @@ ${bold}DESCRIPTION${normal}
             Default is "DOCKER_ORG"
 
         ${bold}--nix-channel-url${normal}
-           Specifies link to NIX BBP channel.
-           Default is "$NIX_CHANNEL_URL"
+            Specifies link to NIX BBP channel.
+            Default is "$NIX_CHANNEL_URL"
+
+        ${bold}-t|--pkg-docker-tag${normal}
+            Specifies tag of Docker images built by 
+            pkg.<expr> make targets. Default is "$PKG_DTAG"
 
         ${bold}-h --help${normal}
                 Display this message and exit.
@@ -68,6 +72,10 @@ parse_cli() {
                 shift
                 SSH_KEY="$1"
                 ;;
+            -t|--pkg-docker-tag)
+                shift
+                PKG_DTAG="$1"
+                ;;
             -h|--help)
                 help_message
                 exit 0
@@ -90,6 +98,7 @@ SSH_KEY=~/.ssh/id_rsa
 NIX_CHANNEL_URL=http://`curl -4 icanhazip.com 2>/dev/null`/channels/bbp-nixpkgs-unstable
 DOCKER_ORG=bbp
 BBPCODE_SSH_USER=$USER
+PKG_DTAG=latest
 
 parse_cli $@
 check_docker
@@ -100,4 +109,5 @@ SSH_KEY = "$SSH_KEY"
 NIX_CHANNEL_URL = "$NIX_CHANNEL_URL"
 DOCKER_ORG = "$DOCKER_ORG"
 BBPCODE_SSH_USER = "$USER"
+PKG_DTAG ?= "PKG_DTAG"
 EOF
