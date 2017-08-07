@@ -1,0 +1,33 @@
+#!/bin/sh -e
+
+mpich2_nix_store_path=$(nix-env --query --available --out-path  "mpich2" \
+  | grep -v mpich2-1.4 \
+  | cut -d' ' -f2- \
+  | tr ';' '\n' \
+  | grep -v doc=)
+
+if [ "x$mpich2_nix_store_path" = x ] ; then
+    echo 'Warn: mpich2 does not seem to be installed.' >&2
+    echo Skip >&2
+    exit 0
+fi
+
+if ! [ -d "$mpich2_nix_store_path" ] ; then
+    echo 'Error: mpich2 NIX store path does not exist' >&2
+    echo "Error: path: $mpich2_nix_store_path" >&2
+    echo Abort
+    exit 1
+fi
+
+if ! [ -d "$mpich2_nix_store_path/lib" ] ; then
+    echo 'Error: mpich2 NIX store library path does not exist' >&2
+    echo "Error: path: $mpich2_nix_store_path" >&2
+    echo Abort
+    exit 1
+fi
+
+#echo "$mpich2_nix_store_path/lib" >"/etc/ld.so.conf.d/nix-mpich2.conf"
+#ldconfig
+
+find /root/.nix-profile/bin -type l -print0 | xargs -0 \
+    mpi-shifter-patch-executable "$mpich2_nix_store_path/lib"

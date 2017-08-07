@@ -1,0 +1,87 @@
+#!/usr/bin/env python
+
+import logging
+import os
+import os.path as osp
+import sys
+from subprocess import (
+    CalledProcessError,
+    check_call,
+    check_output,
+)
+
+# https://github.com/NERSC/shifter/blob/master/doc/mpi/mpich_abi.rst
+# /opt/udiImage/<type>/lib64/dep
+
+def find_executable(name, names=None, required=True):
+    """Utility function to find an executable in PATH
+    name: program to find. Use given value if absolute path
+
+    names: list of additional names. For instance
+
+       >>> find_executable('sed', names=['gsed'])
+
+    required: If True, then the function raises an Exception 
+    if the program is not found.
+    """
+    names = [name] + (names or [])
+    for name in names:
+        if osp.isabs(name):
+            return name
+        for path in os.environ.get('PATH', '').split(os.pathsep):
+            file = osp.join(path, name)
+            if osp.exists(file) and not osp.isdir(file):
+                abs_file = osp.abspath(file)
+                if os.access(file, os.X_OK):
+                    return abs_file
+    if required:
+        raise Exception('Could not find readelf executable')
+
+
+READELF = find_executable('readelf', names=['eu-readelf'])
+
+
+def remove_rpaths(executable, *excluded_rpaths):
+    """Patch the given executable to remove RPATH specified in argument
+    """
+    logger = logging.getLogger('remove_rpaths: %s' % executable)
+    command = '"{}" -d "{}" | grep RUNPATH'.format(READELF, executable)
+    try:
+        output = check_output(command, shell=True)
+    except CalledProcessError:
+        logger.warn('Ignore file as it does not seem to be an ELF one')
+        return False
+    rpath = None
+    for line in output.splitlines():
+        header, value = line.split(':', 1)
+        if 'Library rpath' in header or 'Library runpath' in header:
+            value = value.strip()
+            rpath = value[1:-1].split(os.pathsep)  # get rid of []
+            break
+    if not rpath:
+        logger.warn('No RPATH information')
+        return
+    updated = False
+    print rpath
+    new_rpath = list(filter(lambda e: e not in excluded_rpaths, rpath))
+    if rpath != new_rpath:
+        updated = True
+        logger.info('Modifying RPATH of executable: %s', executable)
+        check_call([
+            'patchelf',
+            '--set-rpath',
+            os.pathsep.join(new_rpath),
+            executable
+        ])
+    return updated
+
+
+def main():
+    logging.basicConfig(level=logging.INFO)
+    mpi_lib_path = sys.argv[1]
+    for executable in sys.argv[2:]:
+        remove_rpaths(executable, mpi_lib_path)
+
+
+if __name__:
+    main()
