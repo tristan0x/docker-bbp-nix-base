@@ -1,0 +1,7 @@
+#!/bin/sh -e
+
+nix-env --query --available --out-path  "$1" \
+  | grep -v mpich2-1.4 \
+  | cut -d' ' -f2- \
+  | tr ';' '\n' \
+  | grep -v doc=

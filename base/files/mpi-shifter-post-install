@@ -1,7 +1,6 @@
 #!/bin/sh -e
 
-mpich2_nix_store_path=$(nix-env --query --available --out-path  "mpich2" \
-  | grep -v mpich2-1.4 \
+mpich2_nix_store_path=$(nix-env --query --available --out-path  "mpich2-$1" \
   | cut -d' ' -f2- \
   | tr ';' '\n' \
   | grep -v doc=)
@@ -25,9 +24,6 @@ if ! [ -d "$mpich2_nix_store_path/lib" ] ; then
     echo Abort
     exit 1
 fi
-
-#echo "$mpich2_nix_store_path/lib" >"/etc/ld.so.conf.d/nix-mpich2.conf"
-#ldconfig
 
 find /root/.nix-profile/bin -type l -print0 | xargs -0 \
     mpi-shifter-patch-executable "$mpich2_nix_store_path/lib"

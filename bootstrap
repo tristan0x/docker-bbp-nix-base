@@ -2,6 +2,8 @@
 
 SED=${SED:-sed}
 DOCKER=${DOCKER:-docker}
+CURL=${CURL:-curl}
+SHA256SUM=${SHA256SUM:-sha256sum}
 
 log() {
     echo '#' $@
@@ -48,8 +50,10 @@ ${bold}ENVIRONMENT${normal}
         You can specify path to executables used by this script
         via environment variables if not in ${bold}PATH${normal}
 
-        ${bold}SED${normal}
+        ${bold}CURL${normal}
         ${bold}DOCKER${normal}
+        ${bold}SED${normal}
+        ${bold}SHA256SUM${normal}
 EOF
 }
 
@@ -80,6 +84,10 @@ parse_cli() {
                 help_message
                 exit 0
                 ;;
+            *)
+                echo "Unknown option: $1. Abort."
+                exit 1
+                ;;
         esac
         shift
     done
@@ -93,15 +101,35 @@ check_docker() {
     fi
 }
 
+download_mpich() {
+    MPICH2_VERSION=3.1.4
+    MPICH_TGZ=mpich-${MPICH2_VERSION}.tar.gz
+    MPICH_TGZ_SHA256=f68b5330e94306c00ca5a1c0e8e275c7f53517d01d6c524d51ce9359d240466b
+    MPICH_URL=http://www.mpich.org/static/downloads/${MPICH2_VERSION}/${MPICH_TGZ}
+
+    while true ; do
+        if ! [ -f "base/$MPICH_TGZ" ] ; then
+            echo "Downloading MPICH"
+            (cd base ; "$CURL" -O "$MPICH_URL")
+        fi
+        if ! echo "$MPICH_TGZ_SHA256 base/$MPICH_TGZ" | sha256sum -c - >/dev/null; then
+            echo "Bad SHA256 for base/$MPICH_TGZ. Restarting download"
+            rm -f "base/$MPICH_TGZ"
+        else
+            break
+        fi
+    done
+}
 
 SSH_KEY=~/.ssh/id_rsa
-NIX_CHANNEL_URL=http://`curl -4 icanhazip.com 2>/dev/null`/channels/bbp-nixpkgs-unstable
-DOCKER_ORG=bbp
+NIX_CHANNEL_URL=http://`curl -4 icanhazip.com 2>/dev/null`/channels/bbp-pkgs-unstable
+DOCKER_ORG=bluebrain
 BBPCODE_SSH_USER=$USER
 PKG_DTAG=latest
 
 parse_cli $@
 check_docker
+download_mpich
 
 install -m 400 "$SSH_KEY" base/files/ssh/id_rsa
 cat <<EOF > env.mk
@@ -109,5 +137,6 @@ SSH_KEY = "$SSH_KEY"
 NIX_CHANNEL_URL = "$NIX_CHANNEL_URL"
 DOCKER_ORG = "$DOCKER_ORG"
 BBPCODE_SSH_USER = "$USER"
-PKG_DTAG ?= "PKG_DTAG"
+PKG_DTAG ?= "$PKG_DTAG"
+MPICH2_VERSION = "$MPICH2_VERSION"
 EOF
