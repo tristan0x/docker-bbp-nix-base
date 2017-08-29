@@ -5,6 +5,7 @@ ARG NIX_CHANNEL_URL
 ARG BBPCODE_SSH_USER
 ARG MPICH2_VERSION
 
+# Install Nix and useful system packages
 RUN echo 'check-update' ; dnf check-update -yv \
  && echo 'distro-sync' ; dnf distro-sync -yv \
  && dnf install -y sudo \
@@ -25,8 +26,11 @@ RUN echo 'check-update' ; dnf check-update -yv \
  && echo "build-users-group =" > /etc/nix/nix.conf \
  && curl https://nixos.org/nix/install | USER=root sh
 
+# Install development packages to build mpich2
 RUN dnf group install -yv 'C Development Tools and Libraries'
 RUN dnf install -y gcc gcc-gfortran make
+
+# Build and install mpich2
 ADD mpich-${MPICH2_VERSION}.tar.gz /usr/local/src/
 RUN [ -f /usr/local/src/mpich-${MPICH2_VERSION}.tar.gz ] \
  && tar zxf /usr/local/src/mpich-${MPICH2_VERSION}.tar.gz -C /usr/local/src \
@@ -35,6 +39,7 @@ RUN [ -f /usr/local/src/mpich-${MPICH2_VERSION}.tar.gz ] \
  && make && make -j`nproc` all test install \
  && ldconfig
 
+# Prepare Nix environment
 ADD files/nix-do /usr/bin/
 ADD files/bashrc /root/.bashrc
 ADD files/ssh/config /tmp/ssh_config
@@ -52,3 +57,16 @@ RUN chmod 711 /root/.ssh \
  && nix-do nix-channel --update
 
 ENV PATH="/root/.nix-profile/bin:$PATH"
+
+ARG NIX_PACKAGE
+
+# Install NIX packages
+RUN nix-do nix-env -i python binutils patchelf mpich2-${MPICH2_VERSION}
+RUN nix-do nix-env -i highfive
+RUN for pkg in $NIX_PACKAGE ; do \
+        rm -rf /share/man ; \
+        nix-do nix-env -i "$pkg" ; \
+    done \
+ && nix-do nix-store --gc \
+ && mpi-shifter-post-install "${MPICH2_VERSION}" \
+ && rm -rf /root/.ssh /tmp
