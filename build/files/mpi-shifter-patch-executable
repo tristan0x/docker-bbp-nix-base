@@ -41,10 +41,10 @@ def find_executable(name, names=None, required=True):
 READELF = find_executable('readelf', names=['eu-readelf'])
 
 
-def remove_rpaths(executable, *excluded_rpaths):
+def update_rpaths(executable, prepend_rpaths, excluded_rpaths):
     """Patch the given executable to remove RPATH specified in argument
     """
-    logger = logging.getLogger('remove_rpaths: %s' % executable)
+    logger = logging.getLogger('update_rpaths: %s' % executable)
     command = '"{}" -d "{}" | grep RUNPATH'.format(READELF, executable)
     try:
         output = check_output(command, shell=True)
@@ -62,8 +62,8 @@ def remove_rpaths(executable, *excluded_rpaths):
         logger.warn('No RPATH information')
         return
     updated = False
-    print rpath
     new_rpath = list(filter(lambda e: e not in excluded_rpaths, rpath))
+    new_rpath = prepend_rpaths + new_rpath
     if rpath != new_rpath:
         updated = True
         logger.info('Modifying RPATH of executable: %s', executable)
@@ -79,8 +79,19 @@ def remove_rpaths(executable, *excluded_rpaths):
 def main():
     logging.basicConfig(level=logging.INFO)
     mpi_lib_path = sys.argv[1]
+    mpi_site_path = '/nix/var/nix/ext/site-mpi/lib'
+    site_libraries = [
+        'libmpi.so.12',
+        # 'libmpicxx.so.12',
+        # 'libmpifort.so',
+        # 'gfortran.so.3',
+    ]
+    if not osp.isdir(mpi_site_path):
+        os.makedirs(mpi_site_path)
+    for lib in site_libraries:
+        os.symlink(osp.join('/usr/lib64', lib), osp.join(mpi_site_path, lib))
     for executable in sys.argv[2:]:
-        remove_rpaths(executable, mpi_lib_path)
+        update_rpaths(executable, [mpi_site_path], [mpi_lib_path])
 
 
 if __name__:

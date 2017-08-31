@@ -28,14 +28,14 @@ RUN echo 'check-update' ; dnf check-update -yv \
 
 # Install development packages to build mpich2
 RUN dnf group install -yv 'C Development Tools and Libraries'
-RUN dnf install -y gcc gcc-gfortran make
+RUN dnf install -y gcc make
 
 # Build and install mpich2
 ADD mpich-${MPICH2_VERSION}.tar.gz /usr/local/src/
 RUN [ -f /usr/local/src/mpich-${MPICH2_VERSION}.tar.gz ] \
  && tar zxf /usr/local/src/mpich-${MPICH2_VERSION}.tar.gz -C /usr/local/src \
  ;  cd /usr/local/src/mpich-${MPICH2_VERSION} \
- && ./configure --prefix=/ --libdir=/lib64 \
+ && ./configure --enable-fortran=no --prefix=/ --libdir=/lib64 \
  && make && make -j`nproc` all test install \
  && ldconfig
 
@@ -44,8 +44,6 @@ ADD files/nix-do /usr/bin/
 ADD files/bashrc /root/.bashrc
 ADD files/ssh/config /tmp/ssh_config
 ADD files/ssh/id_rsa /root/.ssh/
-ADD files/mpi-shifter-post-install /usr/bin/
-ADD files/mpi-shifter-patch-executable /usr/bin/
 ADD files/nix-store-path /usr/bin/
 
 RUN chmod 711 /root/.ssh \
@@ -67,6 +65,10 @@ RUN for pkg in $NIX_PACKAGE ; do \
         rm -rf /share/man ; \
         nix-do nix-env -i "$pkg" ; \
     done \
- && nix-do nix-store --gc \
- && mpi-shifter-post-install "${MPICH2_VERSION}" \
+ && nix-do nix-store --gc
+
+ADD files/mpi-shifter-post-install /usr/bin/
+ADD files/mpi-shifter-patch-executable /usr/bin/
+RUN mpi-shifter-post-install "${MPICH2_VERSION}" \
  && rm -rf /root/.ssh /tmp
+ENV LD_LIBRARY_PATH=/nix/var/nix/ext/site-mpi/lib
