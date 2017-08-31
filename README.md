@@ -27,13 +27,17 @@ A Makefile allows you to build desired Docker images. Available targets:
 
 ### Makefile environment variables
 
-You can specify the following environment variables to customize executed commands:
+Some environment variables can be specified to override location of some executables:
 
-* `DOCKER`, path to *docker_ executable. default is "docker"
+* `DOCKER`
+* `CURL`
+* `SED`
+* `SHA256SUM`
+
+Additional environment variables can be specified to control behavior:
+
 * `DBFLAGS`, used to add arguments to *docker build* commands.
-  For instance: `DBFLAGS=--no-cache make base`
-* `DTAG`, used to customize the tag version of Docker images built
-  by the `pkg.<expr>` make targets.
+  For instance: `DBFLAGS=--no-cache make build.touchdetector`
 
 # LICENSE
 
