@@ -1,36 +1,21 @@
-FROM fedora:25
-LABEL maintainer "Tristan CAREL <tristan.carel@epfl.ch"
+ARG DOCKER_ORG=BlueBrain
+FROM ${DOCKER_ORG}/nix
 
-ARG NIX_CHANNEL_URL
+ADD files/ssh/config /tmp/ssh_config
+ADD files/ssh/id_rsa /root/.ssh/
+ADD files/nix-store-path /usr/bin/
+
 ARG BBPCODE_SSH_USER
-ARG MPICH2_VERSION
 
-# Install Nix and useful system packages
-RUN echo 'check-update' ; dnf check-update -yv \
- && echo 'distro-sync' ; dnf distro-sync -yv \
- && dnf install -y sudo \
- 	bzip2 \
- 	findutils \
- 	git \
- 	hostname \
- 	nano \
- 	openssh-clients \
- 	vim \
-    ncurses \
-    ncurses-devel \
-    ncurses-libs \
-    readline \
-    readline-devel \
-    patchelf \
- && mkdir -m 755 /etc/nix \
- && echo "build-users-group =" > /etc/nix/nix.conf \
- && curl https://nixos.org/nix/install | USER=root sh
+RUN chmod 711 /root/.ssh \
+ && chmod 400 /root/.ssh/id_rsa \
+ && </tmp/ssh_config sed -e "s/@BBPCODE_SSH_USER@/${BBPCODE_SSH_USER}/g" \
+  | install -m 400 /dev/stdin /root/.ssh/config \
+ && rm -f /tmp/ssh_config
 
-# Install development packages to build mpich2
-RUN dnf group install -yv 'C Development Tools and Libraries'
-RUN dnf install -y gcc make
 
 # Build and install mpich2
+ARG MPICH2_VERSION
 ADD mpich-${MPICH2_VERSION}.tar.gz /usr/local/src/
 RUN [ -f /usr/local/src/mpich-${MPICH2_VERSION}.tar.gz ] \
  && tar zxf /usr/local/src/mpich-${MPICH2_VERSION}.tar.gz -C /usr/local/src \
@@ -39,29 +24,11 @@ RUN [ -f /usr/local/src/mpich-${MPICH2_VERSION}.tar.gz ] \
  && make && make -j`nproc` all test install \
  && ldconfig
 
-# Prepare Nix environment
-ADD files/nix-do /usr/bin/
-ADD files/bashrc /root/.bashrc
-ADD files/ssh/config /tmp/ssh_config
-ADD files/ssh/id_rsa /root/.ssh/
-ADD files/nix-store-path /usr/bin/
-
-RUN chmod 711 /root/.ssh \
- && chmod 400 /root/.ssh/id_rsa \
- && </tmp/ssh_config sed -e "s/@BBPCODE_SSH_USER@/${BBPCODE_SSH_USER}/g" \
-  | install -m 400 /dev/stdin /root/.ssh/config \
- && rm -f /tmp/ssh_config \
- && nix-do nix-channel --add $NIX_CHANNEL_URL bbp-pkgs \
- && nix-do nix-channel --update
-
-ENV PATH="/root/.nix-profile/bin:$PATH"
-
 ARG NIX_PACKAGE
 
 # Install NIX packages
-RUN nix-do nix-env -i python binutils patchelf mpich2-${MPICH2_VERSION}
-RUN nix-do nix-env -i highfive
-RUN for pkg in $NIX_PACKAGE ; do \
+RUN nix-do nix-env -i python binutils patchelf \
+ && for pkg in $NIX_PACKAGE ; do \
         rm -rf /share/man ; \
         nix-do nix-env -i "$pkg" ; \
     done \

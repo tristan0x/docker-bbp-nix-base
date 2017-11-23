@@ -34,7 +34,7 @@ ${bold}DESCRIPTION${normal}
 
         ${bold}-o --docker-organization${normal}
             Specifies Docker organization where build images are sent
-            Default is "DOCKER_ORG"
+            Default is "$DOCKER_ORG"
 
         ${bold}--nix-channel-url${normal}
             Specifies link to NIX BBP channel.
@@ -71,6 +71,9 @@ parse_cli() {
             --nix-channel-url)
                 shift
                 NIX_CHANNEL_URL="$1"
+                if [ "$NIX_CHANNEL_URL" = "local" ] ; then
+                    NIX_CHANNEL_URL="$LOCAL_CHANNEL"
+                fi
                 ;;
             -s|--bbpcode-ssh-user)
                 shift
@@ -108,13 +111,13 @@ download_mpich() {
     MPICH_URL=http://www.mpich.org/static/downloads/${MPICH2_VERSION}/${MPICH_TGZ}
 
     while true ; do
-        if ! [ -f "base/$MPICH_TGZ" ] ; then
+        if ! [ -f "build/$MPICH_TGZ" ] ; then
             echo "Downloading MPICH"
-            (cd base ; "$CURL" -O "$MPICH_URL")
+            (cd build ; "$CURL" -O "$MPICH_URL")
         fi
-        if ! echo "$MPICH_TGZ_SHA256 base/$MPICH_TGZ" | sha256sum -c - >/dev/null; then
-            echo "Bad SHA256 for base/$MPICH_TGZ. Restarting download"
-            rm -f "base/$MPICH_TGZ"
+        if ! echo "$MPICH_TGZ_SHA256 build/$MPICH_TGZ" | sha256sum -c - >/dev/null; then
+            echo "Bad SHA256 for build/$MPICH_TGZ. Restarting download"
+            rm -f "build/$MPICH_TGZ"
         else
             break
         fi
@@ -122,7 +125,8 @@ download_mpich() {
 }
 
 SSH_KEY=~/.ssh/id_rsa
-NIX_CHANNEL_URL=http://`curl -4 icanhazip.com 2>/dev/null`/channels/bbp-pkgs-unstable
+LOCAL_CHANNEL=http://`curl -4 icanhazip.com 2>/dev/null`/channels/bbp-pkgs-unstable
+NIX_CHANNEL_URL=https://bbpobjectstorage.epfl.ch/nix-channel
 DOCKER_ORG=bluebrain
 BBPCODE_SSH_USER=$USER
 PKG_DTAG=latest
@@ -131,7 +135,7 @@ parse_cli $@
 check_docker
 download_mpich
 
-install -m 400 "$SSH_KEY" base/files/ssh/id_rsa
+install -m 400 "$SSH_KEY" build/files/ssh/id_rsa
 cat <<EOF > env.mk
 SSH_KEY = "$SSH_KEY"
 NIX_CHANNEL_URL = "$NIX_CHANNEL_URL"

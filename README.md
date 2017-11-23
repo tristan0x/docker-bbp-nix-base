@@ -1,10 +1,10 @@
 # Blue Brain Project Nix base Docker image
 
 This repository provides:
-* a Docker recipe to build a minimalist NIX image based on Fedora,
+1. a Docker recipe to build a minimalist NIX image based on Ubuntu 16.04,
   located in the [base](./base) directory.
-* a Docker recipe to build images containing Blue Brain HPC software stack base on
-  the previous image, located in the [package](./package) directory.
+1. a Docker recipe to build images containing Blue Brain HPC software stack
+  base on the previous image, located in the [build](./build) directory.
 
 ## Installation prerequisites
 
