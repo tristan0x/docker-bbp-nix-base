@@ -1,3 +1,8 @@
+# lmod setup
+. /usr/share/lmod/lmod/init/profile
+export MODULEPATH="/root/.nix-profile/share/modulefiles:$MODULEPATH"
+
+# Nix setup
 . /root/.nix-profile/etc/profile.d/nix.sh
 export NIX_PATH="ssh-config-file=/root/.ssh/config:$NIX_PATH"
 export NIX_PATH="bbp-pkgs=/root/.nix-defexpr/channels/bbp-pkgs:$NIX_PATH"

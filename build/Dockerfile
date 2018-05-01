@@ -24,15 +24,21 @@ RUN [ -f /usr/local/src/mpich-${MPICH2_VERSION}.tar.gz ] \
  && make && make -j`nproc` all test install \
  && ldconfig
 
+# Install NIX packages
+RUN nix-do nix-env -f /root/.nix-defexpr/channels/bbp-pkgs \
+ -i python3 binutils patchelf
+
 ARG NIX_PACKAGE
 
-# Install NIX packages
-RUN nix-do nix-env -i python binutils patchelf \
- && for pkg in $NIX_PACKAGE ; do \
-        rm -rf /share/man ; \
-        nix-do nix-env -i "$pkg" ; \
-    done \
- && nix-do nix-store --gc
+RUN if [ "x$NIX_PACKAGE" = xall ] ;then \
+    NIX_PACKAGE="modules.all modules.extra nse-allpkgs modules.benchs" ; \
+ fi ; \
+ pkgs="" ; \
+ for pkg in $NIX_PACKAGE ; do \
+    pkgs="-iA $pkg $pkgs" ; \
+ done ; \
+ nix-do nix-env -f /root/.nix-defexpr/channels/bbp-pkgs $pkgs ; \
+ rm -rf /share/man
 
 ADD files/mpi-shifter-post-install /usr/bin/
 ADD files/mpi-shifter-patch-executable /usr/bin/
