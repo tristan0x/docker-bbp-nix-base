@@ -72,6 +72,7 @@ parse_cli() {
                 shift
                 NIX_CHANNEL_URL="$1"
                 if [ "$NIX_CHANNEL_URL" = "local" ] ; then
+                    LOCAL_CHANNEL=http://`$CURL -4 icanhazip.com 2>/dev/null`/channels/bbp-pkgs-unstable
                     NIX_CHANNEL_URL="$LOCAL_CHANNEL"
                 fi
                 ;;
@@ -97,6 +98,7 @@ parse_cli() {
 }
 
 check_docker() {
+    log "Checking Docker version"
     docker_experimental=`$DOCKER version --format '{{.Server.Experimental}}'`
     if [ x$docker_experimental != xtrue ] ;then
         echo "Docker experimental mode does not seem to be enabled. Abort" >&2
@@ -106,6 +108,7 @@ check_docker() {
 
 download_mpich() {
     MPICH2_VERSION=3.1.4
+    log "Downloading MPICH $MPICH2_VERSION"
     MPICH_TGZ=mpich-${MPICH2_VERSION}.tar.gz
     MPICH_TGZ_SHA256=f68b5330e94306c00ca5a1c0e8e275c7f53517d01d6c524d51ce9359d240466b
     MPICH_URL=http://www.mpich.org/static/downloads/${MPICH2_VERSION}/${MPICH_TGZ}
@@ -125,7 +128,6 @@ download_mpich() {
 }
 
 SSH_KEY=~/.ssh/id_rsa
-LOCAL_CHANNEL=http://`curl -4 icanhazip.com 2>/dev/null`/channels/bbp-pkgs-unstable
 NIX_CHANNEL_URL=https://bbpobjectstorage.epfl.ch/nix-channel
 DOCKER_ORG=bluebrain
 BBPCODE_SSH_USER=$USER
@@ -135,7 +137,10 @@ parse_cli $@
 check_docker
 download_mpich
 
+log "Copying SSH key: $SSH_KEY"
 install -m 400 "$SSH_KEY" build/files/ssh/id_rsa
+
+log "Writing env.mk"
 cat <<EOF > env.mk
 SSH_KEY = "$SSH_KEY"
 NIX_CHANNEL_URL = "$NIX_CHANNEL_URL"
