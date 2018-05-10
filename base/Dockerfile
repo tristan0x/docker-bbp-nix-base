@@ -1,6 +1,12 @@
 FROM ubuntu:16.04
 LABEL maintainer "Tristan CAREL <tristan.carel@epfl.ch>"
 
+
+ENV HTTP_PROXY='http://bbpproxy.epfl.ch:80/'
+ENV HTTPS_PROXY='http://bbpproxy.epfl.ch:80/'
+ENV http_proxy='http://bbpproxy.epfl.ch:80/'
+ENV https_proxy='http://bbpproxy.epfl.ch:80/'
+
 ARG NIX_VERSION=1.11.16
 
 RUN apt-get update \
