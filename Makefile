@@ -25,7 +25,9 @@ push.%: build.%
 	pkg=$(patsubst push.%,%,$@) ;		\
 	$(DOCKER) push $(DOCKER_ORG)/$$pkg:$(PKG_DTAG)
 
-hpc:
+hpc: hpc.build hpc.push
+
+hpc.build:
 	base=`docker images -q --filter="reference=$(HPC_IMAGE)"` ; \
 	if [ "x$$base" = x ] ;then \
 		$(MAKE) build.all ; \
@@ -37,5 +39,7 @@ hpc:
 		  hpc ; \
 	fi
 
+hpc.push:
+	$(DOCKER) push $(HPC_IMAGE)
 
 .PHONY: base hpc
